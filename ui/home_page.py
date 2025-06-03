@@ -6,11 +6,14 @@ import io
 
 
 
+
 class HomePage():
+
 
     def __init__(self,app):
 
         self.app = app
+
 
     def make_circle_image(self,image: Image.Image, size=(20, 20)) -> Image.Image:
 
@@ -21,7 +24,48 @@ class HomePage():
         result = Image.new("RGBA", size)
         result.paste(image, (0, 0), mask=mask)
         return result
-    
+
+
+    def search_by_string(self,event = None):
+        
+        # Clearing previous results.
+        for widget in self.results_frame.winfo_children():
+        
+            widget.destroy()
+        
+        
+        input_string = self.search_bar.get()
+        if input_string:
+
+            # searching from database.
+            data = self.app.session.query(Post).filter(Post.title.ilike(f"{input_string}%")).all()
+            
+            if data:
+                self.results_frame.pack(pady=(0, 10))
+
+
+                for post in data:
+
+                    #element = ctk.CTkLabel(self.results_frame,text = f"🔍  {title}",anchor="w")
+                    
+                    element = ctk.CTkButton(
+                    self.results_frame,
+                    text=f"🔍  {post.title}",
+                    anchor="w",
+                    fg_color="transparent",
+                    hover_color="#333333",
+                    text_color="white",
+                    corner_radius=0,
+                    command=lambda p=post: self.clicked_post(p))
+                    element.pack(fill = "x",padx =5,pady =2)
+                    hr = ctk.CTkFrame(self.results_frame, height=1, fg_color="white")
+                    hr.pack(fill="x", padx=10, pady=4)
+                    
+            else:
+                self.results_frame.pack_forget()
+        else:
+            self.results_frame.pack_forget()
+
     def render(self):
         from ui.new_post_screen import NewPostScreen
 
@@ -29,26 +73,43 @@ class HomePage():
         header = ctk.CTkFrame(self.app)
         header.pack(fill="x")
 
-        # Left Side of Side Bar
-        ctk.CTkLabel(header,
-                    text=f"Logged in as: {self.app.user.username}",
-                    font=ctk.CTkFont(size=14)).pack(side="left", padx=10, pady=10)
+        # Left Side of Header
+        left_frame = ctk.CTkFrame(header, fg_color="transparent")
+        left_frame.pack(side="left", padx=10, pady=10)
+        reddit_logo = Image.open("ui/reddit_logo.png")
+        logo_size =(30,30)
+
+        reddit_logo_resized = reddit_logo.resize(logo_size,Image.Resampling.LANCZOS)
+        reddit_logo_ctk = ctk.CTkImage(light_image=reddit_logo_resized, dark_image=reddit_logo_resized, size=logo_size)
+        
+        ctk.CTkLabel(left_frame,
+                     text = "",
+                     image=reddit_logo_ctk,
+                     width=30,
+                     height=30).pack(side = 'left', padx =10 ,pady = 10)
+        ctk.CTkLabel(left_frame,
+                    text="reddit",
+                    font=ctk.CTkFont(size=30,weight='bold'),
+                    text_color='#EB6304').pack(side="left", padx=5, pady=10)
+        
+        # Search Bar - Center of Header
+        center_frame = ctk.CTkFrame(header, fg_color="transparent")
+        center_frame.pack(side="left", expand=True, fill="both", padx=10, pady=10)
+
+        self.search_bar = ctk.CTkEntry(center_frame,placeholder_text="🔍 Search Reddit",width = 200)
+        self.search_bar.pack(pady = 10,expand = True)
+        self.search_bar.bind("<KeyRelease>",self.search_by_string)
+
+        self.results_frame = ctk.CTkScrollableFrame(self.app,height = 200,width=400)
+        
+        
         
         # Right Side of Side Bar
         
-        # def switch_mode():
-        #     condition = mode_switch.get()
+        right_frame = ctk.CTkFrame(header, fg_color="transparent")
+        right_frame.pack(side="right", padx=10, pady=10)
 
-        #     if condition:
-        #         self._set_appearance_mode("light")
-        #     else:
-        #         self._set_appearance_mode("dark")
-
-        # mode_switch = ctk.CTkSwitch(header,text = "",onvalue= 1,offvalue=0,command = switch_mode)
-        
-        # mode_switch.pack()
-        
-
+        # Reading Profile Pic 
         image_str = io.BytesIO(self.app.user.profile_pic)
         pillow_image = Image.open(image_str)
 
@@ -58,9 +119,20 @@ class HomePage():
         ctk_image = ctk.CTkImage(light_image=pillow_image,dark_image=pillow_image,size=size)
         
 
+        reddit_logo_resized = reddit_logo.resize(logo_size,Image.Resampling.LANCZOS)
+        reddit_logo_ctk = ctk.CTkImage(light_image=reddit_logo_resized, dark_image=reddit_logo_resized, size=logo_size)
+
+        # Reading Plus Pic
+        plus_logo = Image.open("ui/plus.png")
+        
+        plus_logo_size =(50,50)
+
+        plus_logo_resized = plus_logo.resize(logo_size,Image.Resampling.LANCZOS)
+
+        plus_logo_ctk = ctk.CTkImage(light_image=plus_logo_resized, dark_image=plus_logo_resized, size=plus_logo_size)
 
         from ui.profile_screen import ProfileScreen
-        profile_button = ctk.CTkButton(header,
+        profile_button = ctk.CTkButton(right_frame,
                     command=lambda: ProfileScreen(self.app).render(),
                     image = ctk_image,
                     text="",
@@ -71,70 +143,132 @@ class HomePage():
                     hover = False)
         profile_button.pack(side="right", padx=10, pady=10)
 
-        ctk.CTkButton(header,
-                    text="New Post",
+        ctk.CTkButton(right_frame,
+                    image = plus_logo_ctk,
+                    text="",
+                    width = 50,
+                    height=50,
+                    fg_color='transparent',
                     command=lambda: NewPostScreen(self.app).render(),
-                    fg_color="#EB6304",
-                    hover_color= "black").pack(side="right", padx=10, pady=10)
+                    hover = False).pack(side="right", padx=10, pady=10)
         
         # ? Converting Profile Photo from Bytes to file-like object
 
-       
 
-
-
-        
         # Show the posts (Flow Page)
-        post_container = ctk.CTkScrollableFrame(
+        self.post_container = ctk.CTkScrollableFrame(
         self.app,
         width=800,      
         height=600,
         corner_radius=12,
-        fg_color="transparent"  
+        fg_color="white" if ctk.get_appearance_mode() == "light" else "transparent",
+        bg_color="white" if ctk.get_appearance_mode() == "light" else "transparent" 
         )
-        post_container.place(relx=0.5, rely=0.53, anchor="center")
+        self.post_container.place(relx=0.5, rely=0.53, anchor="center")
 
-        for post in self.app.session.query(Post).order_by(Post.id.desc()).all():
+        for post in self.app.session.query(Post).order_by(Post.id.desc()).all(): 
 
-            post_frame = ctk.CTkFrame(post_container,corner_radius=10,fg_color='transparent')
-            post_frame.pack(fill = 'x', padx = 20,pady = 10)
+            self.post_frame = ctk.CTkFrame(self.post_container,corner_radius=10,fg_color="transparent",bg_color="transparent")
+            self.post_frame.pack(fill = 'x', padx = 20,pady = 10)
 
 
             # Adding Profile Picture To Post
-            user_frame = ctk.CTkFrame(post_frame,fg_color="transparent")
-            user_frame.pack(fill='x', padx=10, pady=(10, 5))
+            self.user_frame = ctk.CTkFrame(self.post_frame,fg_color="transparent",bg_color='transparent')
+            self.user_frame.pack(fill='x', padx=10, pady=(10, 5))
 
-            pillow_image_size = (20,20)
-            pillow_image_post = self.make_circle_image(pillow_image,pillow_image_size)
-            
+            author_image_b = io.BytesIO(post.author.profile_pic)
+            author_image = Image.open(author_image_b).resize((20, 20), Image.Resampling.LANCZOS)
+            author_img_circle = self.make_circle_image(author_image, (20, 20))
 
-            ctk_image_post = ctk.CTkImage(light_image=pillow_image_post,dark_image=pillow_image_post,size=pillow_image_size)
+            ctk_image_post = ctk.CTkImage(light_image=author_img_circle,dark_image=author_img_circle,size=(20,20))
 
 
-            profile_pic_label = ctk.CTkLabel(user_frame,image = ctk_image_post,text = "")
+            profile_pic_label = ctk.CTkLabel(self.user_frame,image = ctk_image_post,text = "")
             profile_pic_label.pack(side = 'left', padx = (0,5))
 
             ctk.CTkLabel(
-            user_frame,
-            text=f"r/{post.author.username}",
+            self.user_frame,
+            text=f"u/{post.author.username}",
             font=ctk.CTkFont(size=10, weight="bold"),
-            anchor="w"
+            anchor="w",
+            bg_color='transparent'
             ).pack(side = 'left',pady = 2)
             # fill="x", padx=10, pady=(10, 5)
 
             ctk.CTkLabel(
-            post_frame,
+            self.post_frame,
             text=post.title,
             font=ctk.CTkFont(size=16, weight="bold"),
-            anchor="w"
+            anchor="w",
+            bg_color='transparent'
             ).pack(fill="x", padx=10, pady=(10, 5))
 
         # Post content
-            ctk.CTkLabel(
-            post_frame,
+            self.post_content = ctk.CTkLabel(
+            self.post_frame,
             text=post.text,
             font=ctk.CTkFont(size=14),
             anchor="w",
             wraplength=760, 
             justify="left"
-            ).pack(fill="x", padx=10, pady=(0, 10))
+            )
+            self.post_content.pack(fill="x", padx=10, pady=(0, 10))
+
+
+
+
+    def clicked_post(self,p):
+
+        self.results_frame.pack_forget()
+        
+        for widget in self.post_container.winfo_children():
+            widget.destroy()
+
+        self.post_frame = ctk.CTkFrame(self.post_container,corner_radius=10,fg_color="transparent",bg_color="transparent")
+        self.post_frame.pack(fill = 'x', padx = 20,pady = 10)
+
+        self.user_frame = ctk.CTkFrame(self.post_frame,fg_color="transparent",bg_color='transparent')
+        self.user_frame.pack(fill='x', padx=10, pady=(10, 5))
+
+        ctk.CTkLabel(
+            self.user_frame,
+            text=f"u/{p.author.username}",
+            font=ctk.CTkFont(size=10, weight="bold"),
+            anchor="w",
+            bg_color='transparent'
+            ).pack(side = 'left',pady = 2)
+            # fill="x", padx=10, pady=(10, 5)
+
+        ctk.CTkLabel(
+            self.post_frame,
+            text=p.title,
+            font=ctk.CTkFont(size=16, weight="bold"),
+            anchor="w",
+            bg_color='transparent'
+            ).pack(fill="x", padx=10, pady=(10, 5))
+
+        # Post content
+        self.post_content = ctk.CTkLabel(
+        self.post_frame,
+        text=p.text,
+        font=ctk.CTkFont(size=14),
+        anchor="w",
+        wraplength=760, 
+        justify="left"
+        )
+        self.post_content.pack(fill="x", padx=10, pady=(0, 10))
+
+        back_button = ctk.CTkButton(self.app, text="← Back", width=80, height=30, command=lambda : HomePage(self.app).render(),fg_color="#EB6304",hover_color= "black")
+        back_button.place(x=175 , y=35)
+
+# def switch_mode():
+        #     condition = mode_switch.get()
+
+        #     if condition:
+        #         self.app._set_appearance_mode("light")
+        #     else:
+        #         self.app._set_appearance_mode("dark")
+
+        # mode_switch = ctk.CTkSwitch(header,text = "",onvalue= 1,offvalue=0,command = switch_mode)
+        
+        # mode_switch.pack()

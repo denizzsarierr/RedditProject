@@ -20,7 +20,6 @@ class App(ctk.CTk):
         self.session = Session()
         self.user = None
         self.geometry(f"{self.width}x{self.height}")
-
         LoginPage(self).render()
 
     def clear(self):
