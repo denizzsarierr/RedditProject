@@ -11,13 +11,9 @@ class ProfileScreen():
     def __init__(self,app):
 
         self.app = app
-
-
-    def render(self):
         
-        self.app.clear()
 
-        def upload():
+    def upload(self):
             
             # Uploading Profile Picture by using Pillow
 
@@ -38,6 +34,9 @@ class ProfileScreen():
             
             messagebox.showinfo("Succesfull","You have changed your profile photo succesfully.")
             HomePage(self.app).render()
+        
+        
 
-        button = ctk.CTkButton(self.app,text="",command = upload)
-        button.pack()
+
+
+        

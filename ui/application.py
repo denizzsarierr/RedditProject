@@ -16,7 +16,6 @@ class App(ctk.CTk):
         self.width = self.winfo_screenwidth()
         self.height = self.winfo_screenheight()
         self.resizable(False, False)
-
         self.session = Session()
         self.user = None
         self.geometry(f"{self.width}x{self.height}")
